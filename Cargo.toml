@@ -10,5 +10,5 @@ author = "Gobias"
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 reqwest = { version = "0.11", features = ["json"] }
-clap = { version = "4.0.8", features = ["wrap_help", "cargo"] }
+clap = { version = "4.1.4", features = ["derive"] }
 futures = "0.3"

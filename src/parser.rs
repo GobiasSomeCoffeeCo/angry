@@ -1,43 +1,68 @@
-use clap::{crate_authors, crate_description, crate_name, crate_version, Arg, Command, ValueHint};
+use std::path::PathBuf;
 
-pub fn cli() -> Command {
-    let app = Command::new(crate_name!())
-        .version(crate_version!())
-        .author(crate_authors!())
-        .about(crate_description!());
+use clap::{Parser, Subcommand};
 
-    /////////////////////////////////////////////////////////////////////
-    // group - target selection
-    /////////////////////////////////////////////////////////////////////
-    let app = app
-        .arg(
-            Arg::new("url")
-                .short('u')
-                .long("url")
-                .required_unless_present_any(["stdin", "resume_from"])
-                .help_heading("Target selection")
-                .value_name("URL")
-                .use_value_delimiter(true)
-                .value_hint(ValueHint::Url)
-                .help("The target URL (required, unless [--stdin || --resume-from] used)"),
-        )
-        .arg(
-            Arg::new("stdin")
-                .long("stdin")
-                .help_heading("Target selection")
-                .num_args(0)
-                .help("Read url(s) from STDIN")
-                .conflicts_with("url")
-        )
-        .arg(
-            Arg::new("resume_from")
-                .long("resume-from")
-                .value_hint(ValueHint::FilePath)
-                .value_name("STATE_FILE")
-                .help_heading("Target selection")
-                .help("State file from which to resume a partially complete scan (ex. --resume-from ferox-1606586780.state)")
-                .conflicts_with("url")
-                .num_args(1),
-        );
-    app
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+pub struct Cli {
+    /// Targer URL
+    #[arg(short, long, value_name = "https://www.<target>.com")]
+    pub url: String,
+
+    /// Path to the wordlist you'd like to
+    #[arg(short, long, default_value = "directories.txt", value_name = "FILE")]
+    pub wordlist: PathBuf,
+
+    /// Turn debugging information on
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    pub debug: u8,
+
+    #[command(subcommand)]
+    command: Option<Commands>,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// does testing things
+    Test {
+        /// lists test values
+        #[arg(short, long)]
+        list: bool,
+    },
+}
+
+pub fn cli_parse() {
+    let cli = Cli::parse();
+
+    // You can check the value provided by positional arguments, or option arguments
+    let url = cli.url;
+    println!("{}", url);
+
+    // if let Some(config_path) = cli.wordlist {
+    //     println!("Value for config: {}", config_path.display());
+    // }
+
+    // You can see how many times a particular flag or argument occurred
+    // Note, only flags can have multiple occurrences
+    match cli.debug {
+        0 => println!("Debug mode is off"),
+        1 => println!("Debug mode is kind of on"),
+        2 => println!("Debug mode is on"),
+        _ => println!("Don't be crazy"),
+    }
+
+    // You can check for the existence of subcommands, and if found use their
+    // matches just as you would the top level cmd
+    match &cli.command {
+        Some(Commands::Test { list }) => {
+            if *list {
+                println!("Printing testing lists...");
+            } else {
+                println!("Not printing testing lists...");
+            }
+        }
+        None => {}
+    }
+
+    // Continued program logic goes here...
 }

@@ -1,27 +1,27 @@
+use std::{fs, path::PathBuf};
+
+
+use angry::parser::Cli;
+use clap::{arg, Parser};
 use futures::StreamExt;
 use reqwest::StatusCode;
 
-use std::fs;
+
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Read the URL and HTTP method from the command line
-    let url = get_url_from_command_line();
+    // let url = get_url_from_command_line();
+    let cli = Cli::parse();
 
-    get_statuscode(url).await;
+    fetch_url(cli.url, &cli.wordlist).await;
+
 
     Ok(())
 }
 
-fn get_url_from_command_line() -> String {
-    // Get the URL from the command line arguments
-    let args: Vec<String> = std::env::args().collect();
-    let url = args[1].to_owned();
 
-    url
-}
-
-fn read_urls_from_file(filename: &str) -> Vec<String> {
+fn read_urls_from_file(filename: &PathBuf) -> Vec<String> {
     // Read the file into a String
     let contents = fs::read_to_string(filename).unwrap();
 
@@ -32,8 +32,8 @@ fn read_urls_from_file(filename: &str) -> Vec<String> {
     directories
 }
 
-async fn get_statuscode(base_url: String) {
-    let directories = read_urls_from_file("directories.txt");
+async fn fetch_url(base_url: String, wordlist: &PathBuf) {
+    let directories = read_urls_from_file(&wordlist);
 
     let mut paths = vec![];
 
@@ -41,16 +41,23 @@ async fn get_statuscode(base_url: String) {
         let request = format!("{}/{}", base_url, directory);
         paths.push(request);
     }
+    let client = reqwest::Client::new();
 
-    let fetches = futures::stream::iter(paths.into_iter().map(|path| async move {
-        match reqwest::get(&path).await {
+    let fetches = futures::stream::iter(paths.into_iter().map(|path| { 
+        let client = &client;
+         async move {
+        match client.get(&path).send().await {
             Ok(resp) => match resp.status() {
-                StatusCode::OK => println!("URL:{} Status:{}, {:#?}",path, resp.status(), resp.content_length()),
-                StatusCode::FORBIDDEN => println!("URL:{} Status {}", path, resp.status()),
-                StatusCode::NOT_FOUND => println!("URL:{} Status {}", path, resp.status()),
+                StatusCode::OK => match resp.text().await {
+                    Ok(text) => println!("URL: {}, Status: 200 OK Content Length: {}", &path, text.len()),
+                    Err(e) => println!("error {}", e)
+
+                }
+                StatusCode::FORBIDDEN => println!("URL:{} Status {}", &path, resp.status()),
+                StatusCode::NOT_FOUND => println!("URL:{} Status {}", &path, resp.status()),
                 _ => println!("something else")
             }
-            Err(_) => println!("error parsing URL")
+            Err(e) => println!("error parsing URL {}", e)
             // Ok(resp) => match resp.text().await {
             //     Ok(text) => {
             //         println!("URL: {} Response:Bytes: {}", path, text.len())
@@ -59,14 +66,13 @@ async fn get_statuscode(base_url: String) {
             //     Err(_) => println!("ERROR reading {}", path),
             // },
             // Err(_) => println!("Error downloading path {}", path),
-        }
+        }}
     }))
     .buffer_unordered(8)
     .collect::<Vec<()>>();
 
     println!("Waiting....");
     fetches.await;
-
 
     // let n_urls = urls.len();
     // let client = Client::new();
