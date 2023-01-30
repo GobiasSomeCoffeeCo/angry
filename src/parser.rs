@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
-#[command(author, version, about, long_about = None)]
+#[command(author, version, about, long_about = "A tool to learn asynchronous programming in Rust. ")]
 pub struct Cli {
     /// Target URL
     #[arg(short, long, value_name = "https://www.<target>.com")]
@@ -13,8 +13,8 @@ pub struct Cli {
     #[arg(short, long, default_value = "directories.txt", value_name = "FILE")]
     pub wordlist: PathBuf,
 
-    /// Number of threads. Defaults to 50.
-    #[arg(short, long, default_value_t = 50, value_name = "50")]
+    /// Number of threads.
+    #[arg(short, long, default_value_t = 50, value_name = "NUMBER")]
     pub threads: usize,
 
     /// Turn debugging information on
