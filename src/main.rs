@@ -1,25 +1,23 @@
 use std::{fs, path::PathBuf};
 
-
-use angry::parser::Cli;
-use clap::{arg, Parser};
+use angry::parser::{cli_parse, Cli};
+use clap::Parser;
 use futures::StreamExt;
 use reqwest::StatusCode;
 
-
+const BAD: &'static str = "[-]";
+const GOOD: &'static str = "[+]";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Read the URL and HTTP method from the command line
     // let url = get_url_from_command_line();
     let cli = Cli::parse();
-
+    cli_parse();
     fetch_url(cli.url, &cli.wordlist).await;
-
 
     Ok(())
 }
-
 
 fn read_urls_from_file(filename: &PathBuf) -> Vec<String> {
     // Read the file into a String
@@ -43,29 +41,20 @@ async fn fetch_url(base_url: String, wordlist: &PathBuf) {
     }
     let client = reqwest::Client::new();
 
-    let fetches = futures::stream::iter(paths.into_iter().map(|path| { 
-        let client = &client;
-         async move {
+    let fetches = futures::stream::iter(paths.into_iter().map(|path| {  let client = &client;
+        async move {
         match client.get(&path).send().await {
             Ok(resp) => match resp.status() {
                 StatusCode::OK => match resp.text().await {
-                    Ok(text) => println!("URL: {}, Status: 200 OK Content Length: {}", &path, text.len()),
+                    Ok(text) => println!("\x1b[1;32m{}\x1b[0m Status: \x1b[1;32m{}\x1b[0m {:<33}  Content Length: {}", GOOD, "200 OK", &path, text.len()),
                     Err(e) => println!("error {}", e)
 
                 }
                 StatusCode::FORBIDDEN => println!("URL:{} Status {}", &path, resp.status()),
-                StatusCode::NOT_FOUND => println!("URL:{} Status {}", &path, resp.status()),
+                StatusCode::NOT_FOUND => println!("\x1b[1;91m{}\x1b[0m URL:{:<28} Status {}",BAD, &path, resp.status()),
                 _ => println!("something else")
             }
             Err(e) => println!("error parsing URL {}", e)
-            // Ok(resp) => match resp.text().await {
-            //     Ok(text) => {
-            //         println!("URL: {} Response:Bytes: {}", path, text.len())
-            //     }
-
-            //     Err(_) => println!("ERROR reading {}", path),
-            // },
-            // Err(_) => println!("Error downloading path {}", path),
         }}
     }))
     .buffer_unordered(8)

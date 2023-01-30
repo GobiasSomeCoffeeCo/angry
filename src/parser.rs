@@ -5,13 +5,17 @@ use clap::{Parser, Subcommand};
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 pub struct Cli {
-    /// Targer URL
+    /// Target URL
     #[arg(short, long, value_name = "https://www.<target>.com")]
     pub url: String,
 
-    /// Path to the wordlist you'd like to
+    /// Path to the wordlist
     #[arg(short, long, default_value = "directories.txt", value_name = "FILE")]
     pub wordlist: PathBuf,
+
+    /// Number of threads. Defaults to 50.
+    #[arg(short, long, default_value_t = 50, value_name = "50")]
+    pub threads: usize,
 
     /// Turn debugging information on
     #[arg(short, long, action = clap::ArgAction::Count)]
