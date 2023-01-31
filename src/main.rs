@@ -1,10 +1,13 @@
 use std::{fs, path::PathBuf};
 
-use angry::{parser::{cli_parse, Cli}, BAD, GOOD, INFO, STATUS_OK};
+use angry::{
+    parser::{cli_parse, Cli},
+    GOOD, INFO, STATUS_FORBIDDEN, STATUS_MOVED_PERMANENTLY, STATUS_OK, STATUS_TEMP_REDIRECT,
+    STATUS_UNAUTHORIZED,
+};
 use clap::Parser;
 use futures::StreamExt;
 use reqwest::StatusCode;
-
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -17,7 +20,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn read_urls_from_file(filename: &PathBuf) -> Vec<String> {
     // Read the file into a String
-    let contents = fs::read_to_string(filename).unwrap();
+    let contents = fs::read_to_string(filename).expect(
+        "Unable to find the wordlist directory. Please make sure you provided the correct path",
+    );
 
     // Split the contents of the file by newline characters
     let directories = contents.split('\n').map(String::from).collect();
@@ -39,28 +44,45 @@ async fn fetch_url(base_url: String, wordlist: &PathBuf, threads: usize) {
 
     let client = reqwest::Client::new();
 
-    let fetches = futures::stream::iter(paths.into_iter().map(|path| {  
+    let fetches = futures::stream::iter(paths.into_iter().map(|path| {
         let client = &client;
         async move {
-        match client.get(&path).send().await {
-            // Here we match on status so we can handle each use case we may find useful. Not sure if this is the best way forward?
-            Ok(resp) => match resp.status() {
-                // Have to await on text if you want the content length of the webpage. Will help with filtering out different word counts. Not sure which ones are worth returning?
-                StatusCode::OK => match resp.text().await {
-                    Ok(text) => println!("{GOOD} Status: {}  {:<33}  Content Length: {}", STATUS_OK, &path, text.len()),
-                    Err(e) => println!("error {e}")
-
-                }
-                // Handle any status we may find useful
-                StatusCode::TEMPORARY_REDIRECT => println!("URL:{} Status {}", &path, resp.status()),
-                StatusCode::MOVED_PERMANENTLY => println!("URL:{} Status {}", &path, resp.status()),
-                StatusCode::UNAUTHORIZED => println!("URL:{} Status {}", &path, resp.status()),
-                StatusCode::FORBIDDEN => println!("{INFO} URL:{:<28} Status {}", &path, resp.status()),
-                StatusCode::NOT_FOUND => println!("{BAD} URL:{:<28} Status {}", &path, resp.status()),
-                _ => println!("something else {}", resp.status())
+            match client.get(&path).send().await {
+                // Here we match on status so we can handle each use case we may find useful. Not sure if this is the best way forward?
+                Ok(resp) => match resp.status() {
+                    // Have to await on text if you want the content length of the webpage. Will help with filtering out different word counts. Not sure which ones are worth returning?
+                    StatusCode::OK => match resp.text().await {
+                        Ok(text) => println!(
+                            "{GOOD} Status: {STATUS_OK:<28} {:<33}  Content Length: {}",
+                            &path,
+                            text.len()
+                        ),
+                        Err(e) => println!("error {e}"),
+                    },
+                    // Handle any status we may find useful
+                    StatusCode::TEMPORARY_REDIRECT => {
+                        println!("{INFO} Status: {STATUS_TEMP_REDIRECT:<28} {:<33}", &path)
+                    }
+                    StatusCode::MOVED_PERMANENTLY => {
+                        println!(
+                            "{INFO} Status: {STATUS_MOVED_PERMANENTLY:<28} {:<33}",
+                            &path
+                        )
+                    }
+                    StatusCode::UNAUTHORIZED => {
+                        println!("{INFO} Status: {STATUS_UNAUTHORIZED:<28} {:<33}", &path)
+                    }
+                    StatusCode::FORBIDDEN => {
+                        println!("{INFO} Status: {STATUS_FORBIDDEN:<28} {:<33}", &path)
+                    }
+                    // StatusCode::NOT_FOUND => {
+                    //     println!("{BAD} Status: {STATUS_NOTFOUND:<28} {:<33}", &path)
+                    // }
+                    _ => (),
+                },
+                Err(e) => println!("error parsing URL {e}"),
             }
-            Err(e) => println!("error parsing URL {e}")
-        }}
+        }
     }))
     .buffer_unordered(threads)
     .collect::<Vec<()>>();
