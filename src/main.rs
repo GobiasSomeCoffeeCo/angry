@@ -1,6 +1,6 @@
 use std::{fs, path::PathBuf};
 
-use angry::{parser::{cli_parse, Cli}, BAD, GOOD, INFO};
+use angry::{parser::{cli_parse, Cli}, BAD, GOOD, INFO, STATUS_OK};
 use clap::Parser;
 use futures::StreamExt;
 use reqwest::StatusCode;
@@ -27,7 +27,7 @@ fn read_urls_from_file(filename: &PathBuf) -> Vec<String> {
 }
 
 async fn fetch_url(base_url: String, wordlist: &PathBuf, threads: usize) {
-    let directories = read_urls_from_file(&wordlist);
+    let directories = read_urls_from_file(wordlist);
 
     let mut paths = vec![];
 
@@ -47,7 +47,7 @@ async fn fetch_url(base_url: String, wordlist: &PathBuf, threads: usize) {
             Ok(resp) => match resp.status() {
                 // Have to await on text if you want the content length of the webpage. Will help with filtering out different word counts. Not sure which ones are worth returning?
                 StatusCode::OK => match resp.text().await {
-                    Ok(text) => println!("{GOOD} Status: \x1b[1;32m{}\x1b[0m {:<33}  Content Length: {}", "200 OK" , &path, text.len()),
+                    Ok(text) => println!("{GOOD} Status: {}  {:<33}  Content Length: {}", STATUS_OK, &path, text.len()),
                     Err(e) => println!("error {e}")
 
                 }

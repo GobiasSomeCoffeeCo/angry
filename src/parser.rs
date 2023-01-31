@@ -40,7 +40,7 @@ pub fn cli_parse() {
 
     // You can check the value provided by positional arguments, or option arguments
     let url = cli.url;
-    println!("{}", url);
+    println!("{url}");
 
     // if let Some(config_path) = cli.wordlist {
     //     println!("Value for config: {}", config_path.display());
