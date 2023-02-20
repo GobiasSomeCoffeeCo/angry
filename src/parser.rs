@@ -1,8 +1,8 @@
 use std::io::Write;
 
-use clap::{Parser, Subcommand};
-
 use crate::{banner::Banner, CHECK, VERSION};
+
+use clap::{Parser, Subcommand};
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -26,11 +26,6 @@ impl Default for Config {
 }
 
 impl Config {
-    pub fn new(&self) {
-        // let mut status_codes: Vec<u16> = Vec::new();
-        // let mut excluded_status_codes: Vec<u16> = Vec::new();
-        // let url = Banner::new(GOOD, "Target", &self.url);
-    }
     pub fn header(&self) -> String {
         let banner = format!(
             r#"
@@ -145,7 +140,7 @@ pub fn cli_parse() -> Config {
     config.url = cli.url;
     config.wordlist = cli.wordlist;
     config.threads = cli.threads;
-    println!("{}", config.url);
+    // println!("{}", config.url);
 
     // if cli.status_codes.is_none() {
     //     let mut cli.status_codes = Some(vec![200,400]);
@@ -169,7 +164,7 @@ pub fn cli_parse() -> Config {
     // You can see how many times a particular flag or argument occurred
     // Note, only flags can have multiple occurrences
     match cli.debug {
-        0 => println!("Debug mode is off"),
+        0 => (),
         1 => println!("Debug mode is kind of on"),
         2 => println!("Debug mode is on"),
         _ => println!("Don't be crazy"),

@@ -45,22 +45,26 @@ async fn run(config: Config) {
         match config.exclude_status_codes.clone() {
             None => {
                 if config.status_codes.contains(&resp.status().as_u16()) {
-                    println!(
-                        "{} Status: \x1b[1;32m{:<5}\x1b[0m {:<33}",
-                        GOOD,
-                        &resp.status().as_u16(),
-                        resp.url()
-                    );
+                    color_status(resp.status().as_u16(),
+                    resp.url());
+                    // println!(
+                    //     "{} Status: \x1b[1;32m{:<5}\x1b[0m {:<33}",
+                    //     GOOD,
+                    //     &resp.status().as_u16(),
+                    //     &resp.url()
+                    // );
                 }
             }
             Some(exclude) => {
                 if !&exclude.contains(&resp.status().as_u16()) {
-                    println!(
-                        "{} Status: \x1b[1;32m{:<5}\x1b[0m {:<33}",
-                        GOOD,
-                        &resp.status().as_u16(),
-                        resp.url()
-                    );
+                    color_status(resp.status().as_u16(),
+                    resp.url());
+                    // println!(
+                    //     "{} Status: \x1b[1;32m{:<5}\x1b[0m {:<33}",
+                    //     GOOD,
+                    //     &resp.status().as_u16(),
+                    //     resp.url()
+                    // );
                 }
             }
         }
@@ -150,4 +154,14 @@ fn fetch_url(
             .expect("unable to fetch URL");
         tx.send(resp).expect("unable to send channel");
     });
+}
+
+fn color_status(status: u16, url: &reqwest::Url) {
+    if status >= 400 {
+        println!("{} Status: \x1b[1;91m{:<5}\x1b[0m {:<33}", GOOD, status, url )
+    } else if status >= 300 && status < 400 {
+        println!("{} Status: \x1b[1;93m{:<5}\x1b[0m {:<33}", GOOD, status, url )
+    } else {
+        println!("{} Status: \x1b[1;32m{:<5}\x1b[0m {:<33}", GOOD, status, url )
+    }
 }
