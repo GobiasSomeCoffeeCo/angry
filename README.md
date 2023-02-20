@@ -4,7 +4,7 @@ An attempt at a Content Discovery Tool. :beer:
 ![](angry.gif)
 
 # About
-This is a tool that is heavily inspired by [Feroxbuster](https://github.com/epi052/feroxbuster). It is meant to be a project that will help me better understand Rust's :crab: features by building something similar from the ground up. It is a work in progress and there are plenty of things I need to clean up and optimize. If you're looking for something functional and coded by someone way smarter than me, I'd check out Feroxbuster as it's full featured and heavily optimzed. 
+This is a tool that is heavily inspired by [Feroxbuster](https://github.com/epi052/feroxbuster). It is meant to be a project that will help in better understanding Rust's :crab: features by building something similar (but way worse) from the ground up. It is a work in progress and there are plenty of things I need to clean up and optimize. If you're looking for something functional and coded by someone way smarter than me, I'd check out Feroxbuster as it's full featured and heavily optimzed. 
 
 Note: Codes a little messy/unstructured right now, as I try to determine the best way ahead.
 
