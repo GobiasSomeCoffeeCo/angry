@@ -1,16 +1,15 @@
 use std::io::Write;
-use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 
-use crate::{banner::Banner, CHECK, GOOD, VERSION};
+use crate::{banner::Banner, CHECK, VERSION};
 
 #[derive(Debug, Clone)]
 pub struct Config {
     pub status_codes: Vec<u16>,
     pub exclude_status_codes: Option<Vec<u16>>,
     pub url: String,
-    pub wordlist: PathBuf,
+    pub wordlist: String,
     pub threads: usize,
 }
 
@@ -19,7 +18,7 @@ impl Default for Config {
         Config {
             status_codes: vec![200, 204, 301, 302, 307, 308, 401, 403, 405],
             url: "https://www.example.com".to_string(),
-            wordlist: PathBuf::from("directories.txt"),
+            wordlist: "directories.txt".to_string(),
             threads: 50,
             exclude_status_codes: None,
         }
@@ -39,8 +38,7 @@ impl Config {
   /  \|  \| |/ _] _ \ `v' /
  | /\ | | ' | [/\ v /`. .' 
  |_||_|_|\__|\__/_|_\ !_!  by Gobias Industries...
- Version {}
-  "#,
+ Version {}"#,
             VERSION,
         );
         let top = "───────────────────────────┬──────────────────────";
@@ -57,28 +55,37 @@ impl Config {
         W: Write,
     {
         let mut exclude = Vec::new();
+        let mut included = Vec::new();
+
+        let url = Banner::new(CHECK, "Target", &self.url);
+        let wordlist = Banner::new(CHECK, "Wordlist", &self.wordlist);
+
+        writeln!(&mut writer, "{}", self.header())?;
+        writeln!(&mut writer, "{}", url)?;
+        writeln!(&mut writer, "{}", wordlist)?;
+
+        // This prints "either/or" since these two features cannot be used together
         if let Some(excluded) = &self.exclude_status_codes {
             for code in excluded {
                 exclude.push(code.to_string())
             }
+            let ex_status_codes = Banner::new(
+                CHECK,
+                "Excluded Status Codes",
+                &format!("[{}]", exclude.join(", ")),
+            );
+            writeln!(&mut writer, "{}", ex_status_codes)?;
+        } else {
+            for code in &self.status_codes {
+                included.push(code.to_string())
+            }
+            let status_codes =
+                Banner::new(CHECK, "Status Codes", &format!("[{}]", included.join(", ")));
+            writeln!(&mut writer, "{}", status_codes)?;
         }
 
-        let ex_status_codes = Banner::new(
-            CHECK,
-            "Excluded Status Codes",
-            &format!("[{}]", exclude.join(", ")),
-        );
-
-        let url = Banner::new(CHECK, "Target", &self.url);
-
-        writeln!(&mut writer, "{}", self.header())?;
-        writeln!(&mut writer, "{}", url)?;
-        writeln!(&mut writer, "{}", ex_status_codes)?;
         writeln!(&mut writer, "{}", self.footer())?;
 
-        // for ex in exclude {
-        //     writeln!(&mut writer, "{}", ex)?;
-        // }
         Ok(())
     }
 }
@@ -97,18 +104,18 @@ pub struct Cli {
 
     /// Path to the wordlist
     #[arg(short, long, default_value = "directories.txt", value_name = "FILE")]
-    pub wordlist: PathBuf,
+    pub wordlist: String,
 
     /// Number of threads.
     #[arg(short, long, default_value_t = 50, value_name = "NUMBER")]
     pub threads: usize,
 
     /// Status Codes to include (allow list) (default: 200 204 301 302 307 308 401 403 405)
-    #[arg(short, long, use_value_delimiter = true, value_parser, num_args = 1.., action = clap::ArgAction::Append, value_name = "STATUS_CODE")]
+    #[arg(short, long, use_value_delimiter = true, value_parser, num_args = 1.., conflicts_with = "exclude_status_codes", action = clap::ArgAction::Append, value_name = "STATUS_CODE")]
     pub status_codes: Option<Vec<u16>>,
 
-    /// Status Codes to exclude (returns all status codes except the ones passed)
-    #[arg(short, long, use_value_delimiter = true, value_parser, num_args = 1.., action = clap::ArgAction::Append, value_name = "STATUS_CODE")]
+    /// Status Codes to exclude aka inverse of --status-codes (returns all status codes except the ones passed)
+    #[arg(short, long, use_value_delimiter = true, value_parser, num_args = 1.., conflicts_with = "status_codes", action = clap::ArgAction::Append, value_name = "STATUS_CODE")]
     pub exclude_status_codes: Option<Vec<u16>>,
 
     /// Turn debugging information on

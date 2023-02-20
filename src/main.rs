@@ -1,6 +1,7 @@
-use std::{fs, path::PathBuf, io::stderr};
+use std::{fs, io::stderr};
 
 use angry::parser::{cli_parse, Config};
+use angry::GOOD;
 
 use anyhow::Ok;
 
@@ -13,7 +14,7 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn read_urls_from_file(filename: &PathBuf) -> Vec<String> {
+fn read_urls_from_file(filename: &str) -> Vec<String> {
     // Read the file into a String
     let contents = fs::read_to_string(filename).expect(
         "Unable to find the wordlist directory. Please make sure you provided the correct path",
@@ -30,42 +31,41 @@ async fn run(config: Config) {
     let directories = read_urls_from_file(&config.wordlist);
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
-    // let mut paths = vec![];
     let client = reqwest::Client::new();
 
     for directory in directories {
         let request = format!("{}/{}", config.url, directory);
-        fetch_url(client.clone(), request, tx.clone()).expect("msg");
+        fetch_url(client.clone(), request, tx.clone());
     }
     drop(tx);
 
-    // let status_i_care_about = vec![200, 204, 301, 302, 307, 308, 401, 403, 405];
-
+    // Default Status Codes: [200, 204, 301, 302, 307, 308, 401, 403, 405]
     while let Some(resp) = rx.recv().await {
+        // Checks to see if exclude status codes was used. If not, either the default or user passed status codes will return.
         match config.exclude_status_codes.clone() {
             None => {
                 if config.status_codes.contains(&resp.status().as_u16()) {
-                    println!("GOT = {:#?} URL = {}", &resp.status().as_u16(), resp.url());
+                    println!(
+                        "{} Status: \x1b[1;32m{:<5}\x1b[0m {:<33}",
+                        GOOD,
+                        &resp.status().as_u16(),
+                        resp.url()
+                    );
                 }
             }
             Some(exclude) => {
                 if !&exclude.contains(&resp.status().as_u16()) {
-                    println!("GOT = {:#?} URL = {}", &resp.status().as_u16(), resp.url());
+                    println!(
+                        "{} Status: \x1b[1;32m{:<5}\x1b[0m {:<33}",
+                        GOOD,
+                        &resp.status().as_u16(),
+                        resp.url()
+                    );
                 }
             }
         }
     }
-    // Iterate through the directories and append to the URL
-    // for directory in directories {
-    //     let request = format!("{base_url}/{directory}");
-    //     let client = reqwest::Client::new();
-    //     tokio::spawn(async move {
-    //         // let x = &client;
-    //         tx.send("hello")
-    //     });
-    //     // paths.push(request);
-    // }
-
+ 
     // let fetches = futures::stream::iter(paths.into_iter().map(|path| {
     //     let client = &client;
     //     async move {
@@ -140,10 +140,14 @@ fn fetch_url(
     client: reqwest::Client,
     url: String,
     tx: tokio::sync::mpsc::UnboundedSender<reqwest::Response>,
-) -> anyhow::Result<()> {
+) {
     tokio::spawn(async move {
-        let resp = client.get(&url).send().await.expect("unable to fetch URL");
+        let resp = client
+            .get(&url)
+            .timeout(std::time::Duration::from_secs(3)) // TODO Keeps the code from hanging, but returns an ugly error to the user. 
+            .send()
+            .await
+            .expect("unable to fetch URL");
         tx.send(resp).expect("unable to send channel");
     });
-    Ok(())
 }
