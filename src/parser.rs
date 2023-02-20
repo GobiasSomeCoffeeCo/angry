@@ -90,7 +90,7 @@ impl Config {
     author,
     version,
     about,
-    long_about = "A tool to learn asynchronous programming in Rust. "
+    long_about = "A Content Discovery Tool written in Rust "
 )]
 pub struct Cli {
     /// Target URL
