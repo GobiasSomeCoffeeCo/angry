@@ -37,6 +37,7 @@ async fn run(config: Config) {
         let request = format!("{}/{}", config.url, directory);
         fetch_url(client.clone(), request, tx.clone());
     }
+
     drop(tx);
 
     // Default Status Codes: [200, 204, 301, 302, 307, 308, 401, 403, 405]
@@ -45,31 +46,22 @@ async fn run(config: Config) {
         match config.exclude_status_codes.clone() {
             None => {
                 if config.status_codes.contains(&resp.status().as_u16()) {
-                    color_status(resp.status().as_u16(),
-                    resp.url());
-                    // println!(
-                    //     "{} Status: \x1b[1;32m{:<5}\x1b[0m {:<33}",
-                    //     GOOD,
-                    //     &resp.status().as_u16(),
-                    //     &resp.url()
-                    // );
+                    let (status, url) =(resp.status().as_u16(), resp.url().clone());
+                    let text = resp.text().await.expect("Unable to retrieve response text");
+                    color_status(status, &url, text);
+
                 }
             }
             Some(exclude) => {
                 if !&exclude.contains(&resp.status().as_u16()) {
-                    color_status(resp.status().as_u16(),
-                    resp.url());
-                    // println!(
-                    //     "{} Status: \x1b[1;32m{:<5}\x1b[0m {:<33}",
-                    //     GOOD,
-                    //     &resp.status().as_u16(),
-                    //     resp.url()
-                    // );
+                    let (status, url) =(resp.status().as_u16(), resp.url().clone());
+                    let text = resp.text().await.expect("Unable to retrieve response text");
+                    color_status(status, &url, text);
                 }
             }
         }
     }
- 
+
     // let fetches = futures::stream::iter(paths.into_iter().map(|path| {
     //     let client = &client;
     //     async move {
@@ -148,20 +140,30 @@ fn fetch_url(
     tokio::spawn(async move {
         let resp = client
             .get(&url)
-            .timeout(std::time::Duration::from_secs(3)) // TODO Keeps the code from hanging, but returns an ugly error to the user. 
+            .timeout(std::time::Duration::from_secs(10)) // TODO Keeps the code from hanging, but returns an ugly error to the user.
             .send()
             .await
             .expect("unable to fetch URL");
+
         tx.send(resp).expect("unable to send channel");
     });
 }
 
-fn color_status(status: u16, url: &reqwest::Url) {
+fn color_status(status: u16, url: &reqwest::Url, text: String) {
     if status >= 400 {
-        println!("{} Status: \x1b[1;91m{:<5}\x1b[0m {:<33}", GOOD, status, url )
-    } else if status >= 300 && status < 400 {
-        println!("{} Status: \x1b[1;93m{:<5}\x1b[0m {:<33}", GOOD, status, url )
+        println!(
+            "{} Status: \x1b[1;91m{:<5}\x1b[0m {:<33} Content Length: {}",
+            GOOD, status, url, text.len()
+        )
+    } else if (300..400).contains(&status) {
+        println!(
+            "{} Status: \x1b[1;93m{:<5}\x1b[0m {:<33} Content Length: {}",
+            GOOD, status, url, text.len()
+        )
     } else {
-        println!("{} Status: \x1b[1;32m{:<5}\x1b[0m {:<33}", GOOD, status, url )
+        println!(
+            "{} Status: \x1b[1;32m{:<5}\x1b[0m {:<33} Content Length: {}",
+            GOOD, status, url, text.len()
+        )
     }
 }

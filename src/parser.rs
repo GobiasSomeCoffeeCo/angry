@@ -32,17 +32,17 @@ impl Config {
    __  __  _  __ _____   __
   /  \|  \| |/ _] _ \ `v' /
  | /\ | | ' | [/\ v /`. .' 
- |_||_|_|\__|\__/_|_\ !_!  by Gobias Industries...
+ |_||_|_|\__|\__/_|_\ !_! {} by Gobias Industries...
  Version {}"#,
-            VERSION,
+            '\u{1F620}', VERSION,
         );
         let top = "───────────────────────────┬──────────────────────";
         format!("{banner}\n{top}")
     }
 
     pub fn footer(&self) -> String {
-        let bottom = "───────────────────────────┴──────────────────────";
-        format!("{bottom}")
+        
+        "───────────────────────────┴──────────────────────".to_string()
     }
 
     pub fn print_banner<W>(&self, mut writer: W) -> anyhow::Result<()>
@@ -150,27 +150,20 @@ enum Commands {
 pub fn cli_parse() -> Config {
     let cli = Cli::parse();
 
-    let mut config = Config::default();
-
     // You can check the value provided by positional arguments, or option arguments
-    config.url = cli.url;
-    config.wordlist = cli.wordlist;
-    config.threads = cli.threads;
-    // println!("{}", config.url);
+    let mut config = Config {
+        url: cli.url,
+        wordlist: cli.wordlist,
+        threads: cli.threads,
+        ..Default::default()
+    };
 
-    // if cli.status_codes.is_none() {
-    //     let mut cli.status_codes = Some(vec![200,400]);
-    // }
-
-    match cli.exclude_status_codes {
-        Some(status) => config.exclude_status_codes = Some(status),
-        // Adding this functin because of the Config::default values
-        None => (),
+    if let Some(status) = cli.exclude_status_codes {
+        config.exclude_status_codes = Some(status)
     }
 
-    match cli.status_codes {
-        Some(status) => config.status_codes = status,
-        None => (),
+    if let Some(status) = cli.status_codes {
+        config.status_codes = status
     }
 
     // if let Some(Config_path) = cli.wordlist {
