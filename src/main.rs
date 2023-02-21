@@ -1,5 +1,6 @@
 use std::{fs, io::stderr};
 
+use angry::client::create_client;
 use angry::parser::{cli_parse, Config};
 use angry::GOOD;
 
@@ -10,7 +11,7 @@ async fn main() -> anyhow::Result<()> {
     let std_stderr = stderr();
     let config = cli_parse();
     config.print_banner(std_stderr)?;
-    run(config).await;
+    run(config).await?;
     Ok(())
 }
 
@@ -27,11 +28,19 @@ fn read_urls_from_file(filename: &str) -> Vec<String> {
     directories
 }
 
-async fn run(config: Config) {
+async fn run(config: Config) -> anyhow::Result<()> {
     let directories = read_urls_from_file(&config.wordlist);
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
-    let client = reqwest::Client::new();
+    let client = create_client(
+        config.timeout.try_into().unwrap(),
+        &config.user_agent,
+        config.redirects,
+        config.insecure,
+        &config.headers,
+        config.proxy,
+    )?;
+    // let client = reqwest::Client::new();
 
     for directory in directories {
         let request = format!("{}/{}", config.url, directory);
@@ -46,15 +55,16 @@ async fn run(config: Config) {
         match config.exclude_status_codes.clone() {
             None => {
                 if config.status_codes.contains(&resp.status().as_u16()) {
-                    let (status, url) =(resp.status().as_u16(), resp.url().clone());
-                    let text = resp.text().await.expect("Unable to retrieve response text");
-                    color_status(status, &url, text);
+                    let (status, url) = (resp.status().as_u16(), resp.url().clone());
 
+                    let text = resp.text().await.expect("Unable to retrieve response text");
+
+                    color_status(status, &url, text);
                 }
             }
             Some(exclude) => {
                 if !&exclude.contains(&resp.status().as_u16()) {
-                    let (status, url) =(resp.status().as_u16(), resp.url().clone());
+                    let (status, url) = (resp.status().as_u16(), resp.url().clone());
                     let text = resp.text().await.expect("Unable to retrieve response text");
                     color_status(status, &url, text);
                 }
@@ -62,74 +72,7 @@ async fn run(config: Config) {
         }
     }
 
-    // let fetches = futures::stream::iter(paths.into_iter().map(|path| {
-    //     let client = &client;
-    //     async move {
-    //         let resp = client.get(&path).send().await.expect("msg");
-    //         let status = resp.status().clone().to_string();
-    //         tx.send(resp);
-    //         // match client.get(&path).send().await {
-    //         //     // Here we match on status so we can handle each use case we may find useful. Not sure if this is the best way forward?
-    //         //     Ok(resp) => match resp.status() {
-    //         //         // Have to await on text if you want the content length of the webpage. Will help with filtering out different word counts. Not sure which ones are worth returning?
-    //         //         StatusCode::OK => match resp.text().await {
-    //         //             Ok(text) => println!(
-    //         //                 "{GOOD} Status: {STATUS_OK:<28} {:<33}  Content Length: {}",
-    //         //                 &path,
-    //         //                 text.len()
-    //         //             ),
-    //         //             Err(e) => println!("error {e}"),
-    //         //         },
-    //         //         // Handle any status we may find useful
-    //         //         StatusCode::TEMPORARY_REDIRECT => {
-    //         //             println!("{INFO} Status: {STATUS_TEMP_REDIRECT:<28} {:<33}", &path)
-    //         //         }
-    //         //         StatusCode::MOVED_PERMANENTLY => {
-    //         //             println!(
-    //         //                 "{INFO} Status: {STATUS_MOVED_PERMANENTLY:<28} {:<33}",
-    //         //                 &path
-    //         //             )
-    //         //         }
-    //         //         StatusCode::UNAUTHORIZED => {
-    //         //             println!("{INFO} Status: {STATUS_UNAUTHORIZED:<28} {:<33}", &path)
-    //         //         }
-    //         //         StatusCode::FORBIDDEN => {
-    //         //             println!("{INFO} Status: {STATUS_FORBIDDEN:<28} {:<33}", &path)
-    //         //         }
-    //         //         // StatusCode::NOT_FOUND => {
-    //         //         //     println!("{BAD} Status: {STATUS_NOTFOUND:<28} {:<33}", &path)
-    //         //         // }
-    //         //         _ => (),
-    //         //     },
-    //         //     Err(e) => println!("error parsing URL {e}"),
-    //         // }
-    //     }
-    // }))
-    // .buffer_unordered(threads);
-    // .collect::<Vec<()>>();
-
-    // println!("Waiting....");
-    // fetches.await;
-
-    // let n_urls = urls.len();
-    // let client = Client::new();
-    // let bodies = stream::iter(urls).map(|url| {
-    //     let client = &client;
-    //     async move {
-    //         let resp = client.get(url).send().await?;
-
-    //         resp.bytes().await
-    //     }
-    // }).buffer_unordered(n_urls);
-    // x.await?;
-    // let out = x.await.unwrap();
-    // let new_bodies = bodies.
-    // bodies.for_each(|b| async {
-    //     match b {
-    //         Ok(b) => println!("Got {} bytes", b.len()),
-    //         Err(e) => eprintln!("Got an error: {}", e)
-    //     }
-    // }).await;
+    Ok(())
 }
 
 fn fetch_url(
@@ -150,20 +93,29 @@ fn fetch_url(
 }
 
 fn color_status(status: u16, url: &reqwest::Url, text: String) {
+    let (content_length, lc, wc) = get_text(&text);
     if status >= 400 {
         println!(
-            "{} Status: \x1b[1;91m{:<5}\x1b[0m {:<33} Content Length: {}",
-            GOOD, status, url, text.len()
+            "{} Status: \x1b[1;91m{:<5}\x1b[0m {:<33} WC: {:<6} LC: {:<6} Content Length: {} ",
+            GOOD, status, url, wc, lc, content_length
         )
     } else if (300..400).contains(&status) {
         println!(
-            "{} Status: \x1b[1;93m{:<5}\x1b[0m {:<33} Content Length: {}",
-            GOOD, status, url, text.len()
+            "{} Status: \x1b[1;93m{:<5}\x1b[0m {:<33} WC: {:<6} LC: {:<6} Content Length: {}",
+            GOOD, status, url, wc, lc, content_length
         )
     } else {
         println!(
-            "{} Status: \x1b[1;32m{:<5}\x1b[0m {:<33} Content Length: {}",
-            GOOD, status, url, text.len()
+            "{} Status: \x1b[1;32m{:<5}\x1b[0m {:<33} WC: {:<6} LC: {:<6} Content Length: {}",
+            GOOD, status, url, wc, lc, content_length
         )
     }
+}
+
+fn get_text(text: &str) -> (u64, usize, usize) {
+    let content_length = text.len() as u64;
+    let line_count = text.lines().count();
+    let word_count: usize = text.lines().map(|s| s.split_whitespace().count()).sum();
+
+    (content_length, line_count, word_count)
 }

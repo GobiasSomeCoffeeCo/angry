@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::{collections::HashMap, io::Write};
 
 use crate::{banner::Banner, CHECK, VERSION};
 
@@ -11,6 +11,12 @@ pub struct Config {
     pub url: String,
     pub wordlist: String,
     pub threads: usize,
+    pub headers: HashMap<String, String>,
+    pub insecure: bool,
+    pub proxy: Option<String>,
+    pub timeout: usize,
+    pub redirects: bool,
+    pub user_agent: String,
 }
 
 impl Default for Config {
@@ -21,6 +27,12 @@ impl Default for Config {
             wordlist: "directories.txt".to_string(),
             threads: 50,
             exclude_status_codes: None,
+            headers: HashMap::new(),
+            insecure: false,
+            proxy: None,
+            timeout: 7,
+            redirects: false,
+            user_agent: String::new(),
         }
     }
 }
@@ -41,7 +53,6 @@ impl Config {
     }
 
     pub fn footer(&self) -> String {
-        
         "───────────────────────────┴──────────────────────".to_string()
     }
 
@@ -106,15 +117,43 @@ pub struct Cli {
     pub proxy: Option<String>,
 
     /// Number of seconds before a client's request times out
-    #[arg(short = 'T', long, default_value_t = 7, num_args = 1, help_heading = "Client Settings",value_name = "SECONDS")]
+    #[arg(
+        short = 'T',
+        long,
+        default_value_t = 7,
+        num_args = 1,
+        help_heading = "Client Settings",
+        value_name = "SECONDS"
+    )]
     pub timeout: usize,
 
     /// Allow a client to follow redirects
-    #[arg(short, long, num_args = 0, help_heading = "Client Settings")]
+    #[arg(short, long, help_heading = "Client Settings")]
     pub redirects: bool,
 
+    /// Allow a client to specify HTTP headers
+    #[arg(short = 'H', long, num_args = 1, help_heading = "Client Settings")]
+    pub headers: Option<String>,
+
+    /// Allow a client to specify a User-Agent
+    #[arg(
+        short = 'a',
+        long,
+        default_value = "Mozilla/5.0 (Macintosh; Intel Mac OS X x.y; rv:42.0) Gecko/20100101 Firefox/42.0)",
+        num_args = 1,
+        help_heading = "Client Settings",
+        value_name = "USER_AGENT"
+    )]
+    pub user_agent: String,
+
     /// Disables TLS certificate validation in the client
-    #[arg(short, long, num_args = 0, help_heading = "Client Settings")]
+    #[arg(
+        short,
+        long,
+        default_value_t = false,
+        num_args = 0,
+        help_heading = "Client Settings"
+    )]
     pub insecure: bool,
 
     /// Number of threads.
@@ -149,12 +188,16 @@ enum Commands {
 
 pub fn cli_parse() -> Config {
     let cli = Cli::parse();
+    println!("CLI REDIRECTS {}", cli.redirects);
 
     // You can check the value provided by positional arguments, or option arguments
     let mut config = Config {
         url: cli.url,
         wordlist: cli.wordlist,
         threads: cli.threads,
+        user_agent: cli.user_agent,
+        redirects: cli.redirects,
+        insecure: cli.insecure,
         ..Default::default()
     };
 
@@ -164,6 +207,15 @@ pub fn cli_parse() -> Config {
 
     if let Some(status) = cli.status_codes {
         config.status_codes = status
+    }
+
+    if let Some(headers) = cli.headers {
+        let mut input = headers.split(':');
+
+        let name = input.next().unwrap().trim();
+        let value = input.next().unwrap().trim();
+
+        config.headers.insert(name.to_string(), value.to_string());
     }
 
     // if let Some(Config_path) = cli.wordlist {

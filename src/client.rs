@@ -1,7 +1,7 @@
 use std::{collections::HashMap, time::Duration};
 
 use anyhow::{Ok, Result};
-use reqwest::{header::HeaderMap, redirect::Policy, Client, ClientBuilder, Proxy};
+use reqwest::{header::HeaderMap, redirect::Policy, Client, Proxy};
 
 pub fn create_client(
     timeout: u64,
@@ -9,7 +9,7 @@ pub fn create_client(
     redirects: bool,
     insecure: bool,
     headers: &HashMap<String, String>,
-    proxy: Option<&str>,
+    proxy: Option<String>,
 ) -> Result<Client> {
     let policy = if redirects {
         Policy::limited(10)
