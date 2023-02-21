@@ -101,16 +101,32 @@ pub struct Cli {
     #[arg(short, long, default_value = "directories.txt", value_name = "FILE")]
     pub wordlist: String,
 
+    /// Proxy to use for requests (ex: http(s)://host:port, socks5(h)://host:port)
+    #[arg(short, long, num_args = 1, value_hint = clap::ValueHint::Url, value_name = "PROXY")]
+    pub proxy: Option<String>,
+
+    /// Number of seconds before a client's request times out
+    #[arg(short = 'T', long, default_value_t = 7, num_args = 1, help_heading = "Client Settings",value_name = "SECONDS")]
+    pub timeout: usize,
+
+    /// Allow a client to follow redirects
+    #[arg(short, long, num_args = 0, help_heading = "Client Settings")]
+    pub redirects: bool,
+
+    /// Disables TLS certificate validation in the client
+    #[arg(short, long, num_args = 0, help_heading = "Client Settings")]
+    pub insecure: bool,
+
     /// Number of threads.
     #[arg(short, long, default_value_t = 50, value_name = "NUMBER")]
     pub threads: usize,
 
     /// Status Codes to include (allow list) (default: 200 204 301 302 307 308 401 403 405)
-    #[arg(short, long, use_value_delimiter = true, value_parser, num_args = 1.., conflicts_with = "exclude_status_codes", action = clap::ArgAction::Append, value_name = "STATUS_CODE")]
+    #[arg(short, long, use_value_delimiter = true, value_parser, num_args = 1.., conflicts_with = "exclude_status_codes", action = clap::ArgAction::Append, help_heading = "Response filters", value_name = "STATUS_CODE")]
     pub status_codes: Option<Vec<u16>>,
 
     /// Status Codes to exclude aka inverse of --status-codes (returns all status codes except the ones passed)
-    #[arg(short, long, use_value_delimiter = true, value_parser, num_args = 1.., conflicts_with = "status_codes", action = clap::ArgAction::Append, value_name = "STATUS_CODE")]
+    #[arg(short, long, use_value_delimiter = true, value_parser, num_args = 1.., conflicts_with = "status_codes", action = clap::ArgAction::Append, help_heading = "Response filters", value_name = "STATUS_CODE")]
     pub exclude_status_codes: Option<Vec<u16>>,
 
     /// Turn debugging information on
