@@ -188,7 +188,6 @@ enum Commands {
 
 pub fn cli_parse() -> Config {
     let cli = Cli::parse();
-    println!("CLI REDIRECTS {}", cli.redirects);
 
     // You can check the value provided by positional arguments, or option arguments
     let mut config = Config {

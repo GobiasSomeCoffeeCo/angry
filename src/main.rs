@@ -83,7 +83,6 @@ fn fetch_url(
     tokio::spawn(async move {
         let resp = client
             .get(&url)
-            .timeout(std::time::Duration::from_secs(10)) // TODO Keeps the code from hanging, but returns an ugly error to the user.
             .send()
             .await
             .expect("unable to fetch URL");

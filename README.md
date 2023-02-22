@@ -16,7 +16,7 @@ Usage: angry [OPTIONS] --url <https://www.<target>.com> [COMMAND]
 
 Commands:
   test
-          does testing things  ##Dont worry about this guy##
+          does testing things **Ignore**
   help
           Print this message or the help of the given subcommand(s)
 
@@ -29,29 +29,53 @@ Options:
 
           [default: directories.txt]
 
+  -p, --proxy <PROXY>
+          Proxy to use for requests (ex: http(s)://host:port, socks5(h)://host:port)
+
   -t, --threads <NUMBER> **Work in Progress**
           Number of threads
 
           [default: 50]
 
-  -s, --status-codes <STATUS_CODE>...
-          Status Codes to include (allow list) (default: 200 204 301 302 307 308 401 403 405)
-
-  -e, --exclude-status-codes <STATUS_CODE>...
-          Status Codes to exclude aka inverse of --status-codes (returns all status codes except the ones passed)
-
-  -d, --debug...
-          Turn debugging information on ##Work in Progress##
+  -d, --debug... **Work in Progress**
+          Turn debugging information on
 
   -h, --help
           Print help (see a summary with '-h')
 
   -V, --version
           Print version
+
+Client Settings:
+  -T, --timeout <SECONDS>
+          Number of seconds before a client's request times out
+
+          [default: 7]
+
+  -r, --redirects
+          Allow a client to follow redirects
+
+  -H, --headers <HEADERS>
+          Allow a client to specify HTTP headers
+
+  -a, --user-agent <USER_AGENT>
+          Allow a client to specify a User-Agent
+
+          [default: "Mozilla/5.0 (Macintosh; Intel Mac OS X x.y; rv:42.0) Gecko/20100101 Firefox/42.0)"]
+
+  -i, --insecure
+          Disables TLS certificate validation in the client
+
+Response filters:
+  -s, --status-codes <STATUS_CODE>...
+          Status Codes to include (allow list) (default: 200 204 301 302 307 308 401 403 405)
+
+  -e, --exclude-status-codes <STATUS_CODE>...
+          Status Codes to exclude aka inverse of --status-codes (returns all status codes except the ones passed)
 ```
 
 # TODO
 - [ ] Add recursive scanning
 - [ ] Add max depth
 - [ ] Add extensions
-- [ ] Add headers
+- [x] Add headers
