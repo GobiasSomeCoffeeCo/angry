@@ -1,10 +1,11 @@
 use std::{fs, io::stderr};
 
 use angry::client::create_client;
-use angry::parser::{cli_parse};
 use angry::config::Config;
+use angry::parser::cli_parse;
 use angry::GOOD;
 
+use angry::response::AngryResponse;
 use anyhow::Ok;
 
 #[tokio::main]
@@ -53,21 +54,25 @@ async fn run(config: Config) -> anyhow::Result<()> {
     // Default Status Codes: [200, 204, 301, 302, 307, 308, 401, 403, 405]
     while let Some(resp) = rx.recv().await {
         // Checks to see if exclude status codes was used. If not, either the default or user passed status codes will return.
+        let angry_response = AngryResponse::from(resp, "GET").await;
         match config.exclude_status_codes.clone() {
             None => {
-                if config.status_codes.contains(&resp.status().as_u16()) {
-                    let (status, url) = (resp.status().as_u16(), resp.url().clone());
+                if config
+                    .status_codes
+                    .contains(&angry_response.status().as_u16())
+                {
+                    let (status, url) = (angry_response.status().as_u16(), angry_response.url());
 
-                    let text = resp.text().await.expect("Unable to retrieve response text");
+                    let text = angry_response.text();
 
-                    color_status(status, &url, text);
+                    color_status(status, url, text);
                 }
             }
             Some(exclude) => {
-                if !&exclude.contains(&resp.status().as_u16()) {
-                    let (status, url) = (resp.status().as_u16(), resp.url().clone());
-                    let text = resp.text().await.expect("Unable to retrieve response text");
-                    color_status(status, &url, text);
+                if !&exclude.contains(&angry_response.status().as_u16()) {
+                    let (status, url) = (angry_response.status().as_u16(), angry_response.url());
+                    let text = angry_response.text();
+                    color_status(status, url, text);
                 }
             }
         }
@@ -82,20 +87,14 @@ fn fetch_url(
     tx: tokio::sync::mpsc::UnboundedSender<reqwest::Response>,
 ) {
     tokio::spawn(async move {
-        let resp = client
-            .get(&url)
-            .send()
-            .await
-            .expect("unable to fetch URL");
-
-        
+        let resp = client.get(&url).send().await.expect("unable to fetch URL");
 
         tx.send(resp).expect("unable to send channel");
     });
 }
 
-fn color_status(status: u16, url: &reqwest::Url, text: String) {
-    let (content_length, lc, wc) = get_text(&text);
+fn color_status(status: u16, url: &reqwest::Url, text: &str) {
+    let (content_length, lc, wc) = get_text(text);
     if content_length == u64::MAX {
         println!("hello")
     }

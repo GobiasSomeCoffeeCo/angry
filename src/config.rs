@@ -63,12 +63,14 @@ impl Config {
 
         let url = Banner::new(CHECK, "Target", &self.url);
         let wordlist = Banner::new(CHECK, "Wordlist", &self.wordlist);
+        let redirects = Banner::new(CHECK, "Follow Redirects", &self.redirects.to_string());
+        let timeout = Banner::new(CHECK, "Timeout", &self.timeout.to_string());
 
         writeln!(&mut writer, "{}", self.header())?;
         writeln!(&mut writer, "{}", url)?;
         writeln!(&mut writer, "{}", wordlist)?;
 
-        // This prints "either/or" since these two features cannot be used together
+        // This prints "either excluded or included Status Codes since these two features cannot be used together
         if let Some(excluded) = &self.exclude_status_codes {
             for code in excluded {
                 exclude.push(code.to_string())
@@ -87,6 +89,9 @@ impl Config {
                 Banner::new(CHECK, "Status Codes", &format!("[{}]", included.join(", ")));
             writeln!(&mut writer, "{}", status_codes)?;
         }
+
+        writeln!(&mut writer, "{}", redirects)?;
+        writeln!(&mut writer, "{} second's", timeout)?;
 
         writeln!(&mut writer, "{}", self.footer())?;
 
