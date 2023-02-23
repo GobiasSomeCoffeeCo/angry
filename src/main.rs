@@ -1,7 +1,8 @@
 use std::{fs, io::stderr};
 
 use angry::client::create_client;
-use angry::parser::{cli_parse, Config};
+use angry::parser::{cli_parse};
+use angry::config::Config;
 use angry::GOOD;
 
 use anyhow::Ok;
@@ -87,12 +88,17 @@ fn fetch_url(
             .await
             .expect("unable to fetch URL");
 
+        
+
         tx.send(resp).expect("unable to send channel");
     });
 }
 
 fn color_status(status: u16, url: &reqwest::Url, text: String) {
     let (content_length, lc, wc) = get_text(&text);
+    if content_length == u64::MAX {
+        println!("hello")
+    }
     if status >= 400 {
         println!(
             "{} Status: \x1b[1;91m{:<5}\x1b[0m {:<33} WC: {:<6} LC: {:<6} Content Length: {} ",

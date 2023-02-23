@@ -1,6 +1,7 @@
 pub mod banner;
 pub mod client;
 pub mod parser;
+pub mod config;
 
 pub const BAD: &str = "\x1b[1;91m[-]\x1b[0m";
 pub const GOOD: &str = "\x1b[1;32m[+]\x1b[0m";
