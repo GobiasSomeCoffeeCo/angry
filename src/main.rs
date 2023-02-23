@@ -54,25 +54,19 @@ async fn run(config: Config) -> anyhow::Result<()> {
     // Default Status Codes: [200, 204, 301, 302, 307, 308, 401, 403, 405]
     while let Some(resp) = rx.recv().await {
         // Checks to see if exclude status codes was used. If not, either the default or user passed status codes will return.
-        let angry_response = AngryResponse::from(resp, "GET").await;
+        let angry_response = AngryResponse::from(resp, "GET").await; // TODO Add proper method handling
         match config.exclude_status_codes.clone() {
             None => {
                 if config
                     .status_codes
                     .contains(&angry_response.status().as_u16())
                 {
-                    let (status, url) = (angry_response.status().as_u16(), angry_response.url());
-
-                    let text = angry_response.text();
-
-                    color_status(status, url, text);
+                    color_status(&angry_response);
                 }
             }
             Some(exclude) => {
                 if !&exclude.contains(&angry_response.status().as_u16()) {
-                    let (status, url) = (angry_response.status().as_u16(), angry_response.url());
-                    let text = angry_response.text();
-                    color_status(status, url, text);
+                    color_status(&angry_response);
                 }
             }
         }
@@ -93,33 +87,39 @@ fn fetch_url(
     });
 }
 
-fn color_status(status: u16, url: &reqwest::Url, text: &str) {
-    let (content_length, lc, wc) = get_text(text);
-    if content_length == u64::MAX {
+fn color_status(resp: &AngryResponse) {
+    if resp.content_length() == u64::MAX {
         println!("hello")
     }
-    if status >= 400 {
+    if resp.status().as_u16() >= 400 {
         println!(
             "{} Status: \x1b[1;91m{:<5}\x1b[0m {:<33} WC: {:<6} LC: {:<6} Content Length: {} ",
-            GOOD, status, url, wc, lc, content_length
+            GOOD,
+            resp.status().as_u16(),
+            resp.url(),
+            resp.word_count(),
+            resp.line_count(),
+            resp.content_length()
         )
-    } else if (300..400).contains(&status) {
+    } else if (300..400).contains(&resp.status().as_u16()) {
         println!(
             "{} Status: \x1b[1;93m{:<5}\x1b[0m {:<33} WC: {:<6} LC: {:<6} Content Length: {}",
-            GOOD, status, url, wc, lc, content_length
+            GOOD,
+            resp.status().as_u16(),
+            resp.url(),
+            resp.word_count(),
+            resp.line_count(),
+            resp.content_length()
         )
     } else {
         println!(
             "{} Status: \x1b[1;32m{:<5}\x1b[0m {:<33} WC: {:<6} LC: {:<6} Content Length: {}",
-            GOOD, status, url, wc, lc, content_length
+            GOOD,
+            resp.status().as_u16(),
+            resp.url(),
+            resp.word_count(),
+            resp.line_count(),
+            resp.content_length()
         )
     }
-}
-
-fn get_text(text: &str) -> (u64, usize, usize) {
-    let content_length = text.len() as u64;
-    let line_count = text.lines().count();
-    let word_count: usize = text.lines().map(|s| s.split_whitespace().count()).sum();
-
-    (content_length, line_count, word_count)
 }
