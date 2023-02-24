@@ -70,7 +70,7 @@ pub struct Cli {
     #[arg(short, long, use_value_delimiter = true, value_parser, num_args = 1.., conflicts_with = "exclude_status_codes", action = clap::ArgAction::Append, help_heading = "Response filters", value_name = "STATUS_CODE")]
     pub status_codes: Option<Vec<u16>>,
 
-    /// Status Codes to exclude aka inverse of --status-codes (returns all status codes except the ones passed)
+    /// Status Codes to exclude (returns all status codes except the ones passed)
     #[arg(short, long, use_value_delimiter = true, value_parser, num_args = 1.., conflicts_with = "status_codes", action = clap::ArgAction::Append, help_heading = "Response filters", value_name = "STATUS_CODE")]
     pub exclude_status_codes: Option<Vec<u16>>,
 

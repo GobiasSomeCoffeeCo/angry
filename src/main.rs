@@ -81,7 +81,20 @@ fn fetch_url(
     tx: tokio::sync::mpsc::UnboundedSender<reqwest::Response>,
 ) {
     tokio::spawn(async move {
-        let resp = client.get(&url).send().await.expect("unable to fetch URL");
+        let resp = client.get(&url).send().await;
+
+        // Returns better user facing error handling for timed out responses.
+        if let Err(e) = &resp {
+            if e.is_timeout() {
+                if let Some(z) = e.url() {
+                    eprintln!("Request Timed Out: {}", z);
+                    return;
+                }
+            }
+        }
+
+        // Handle all other errors here. Probably a better way to accomplish this.
+        let resp = resp.expect("error while requesting URL");
 
         tx.send(resp).expect("unable to send channel");
     });
