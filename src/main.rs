@@ -3,7 +3,7 @@ use std::{fs, io::stderr};
 use angry::client::create_client;
 use angry::config::Config;
 use angry::parser::cli_parse;
-use angry::GOOD;
+use angry::{GOOD, BAD};
 
 use angry::response::AngryResponse;
 use anyhow::Ok;
@@ -18,15 +18,12 @@ async fn main() -> anyhow::Result<()> {
 }
 
 fn read_urls_from_file(filename: &str) -> Vec<String> {
-    // Read the file into a String
     let contents = fs::read_to_string(filename).expect(
         "Unable to find the wordlist directory. Please make sure you provided the correct path",
     );
 
-    // Split the contents of the file by newline characters
     let directories = contents.split('\n').map(String::from).collect();
 
-    // Return the list of directories
     directories
 }
 
@@ -42,7 +39,6 @@ async fn run(config: Config) -> anyhow::Result<()> {
         &config.headers,
         config.proxy,
     )?;
-    // let client = reqwest::Client::new();
 
     for directory in directories {
         let request = format!("{}/{}", config.url, directory);
@@ -53,20 +49,21 @@ async fn run(config: Config) -> anyhow::Result<()> {
 
     // Default Status Codes: [200, 204, 301, 302, 307, 308, 401, 403, 405]
     while let Some(resp) = rx.recv().await {
+        // TODO Add proper method handling
+        let angry_response = AngryResponse::from(resp, "GET").await; 
         // Checks to see if exclude status codes was used. If not, either the default or user passed status codes will return.
-        let angry_response = AngryResponse::from(resp, "GET").await; // TODO Add proper method handling
         match config.exclude_status_codes.clone() {
             None => {
                 if config
                     .status_codes
                     .contains(&angry_response.status().as_u16())
                 {
-                    color_status(&angry_response);
+                    http_response_color_status(&angry_response);
                 }
             }
             Some(exclude) => {
                 if !&exclude.contains(&angry_response.status().as_u16()) {
-                    color_status(&angry_response);
+                    http_response_color_status(&angry_response);
                 }
             }
         }
@@ -87,7 +84,7 @@ fn fetch_url(
         if let Err(e) = &resp {
             if e.is_timeout() {
                 if let Some(z) = e.url() {
-                    eprintln!("Request Timed Out: {}", z);
+                    eprintln!("{} Request Timed Out: {}", BAD, z);
                     return;
                 }
             }
@@ -100,10 +97,7 @@ fn fetch_url(
     });
 }
 
-fn color_status(resp: &AngryResponse) {
-    if resp.content_length() == u64::MAX {
-        println!("hello")
-    }
+fn http_response_color_status(resp: &AngryResponse) {
     if resp.status().as_u16() >= 400 {
         println!(
             "{} Status: \x1b[1;91m{:<5}\x1b[0m {:<33} WC: {:<6} LC: {:<6} Content Length: {} ",
