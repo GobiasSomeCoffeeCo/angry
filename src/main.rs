@@ -3,9 +3,9 @@ use std::{fs, io::stderr};
 use angry::client::create_client;
 use angry::config::Config;
 use angry::parser::cli_parse;
-use angry::{GOOD, BAD};
-
 use angry::response::AngryResponse;
+use angry::{BAD, GOOD};
+
 use anyhow::Ok;
 
 #[tokio::main]
@@ -41,8 +41,17 @@ async fn run(config: Config) -> anyhow::Result<()> {
     )?;
 
     for directory in directories {
-        let request = format!("{}/{}", config.url, directory);
-        fetch_url(client.clone(), request, tx.clone());
+        if config.fuzz.is_some() {
+            if let Some(user_input_url) = config.fuzz.clone() {
+                let updated_url = user_input_url.replace("FUZZ", directory.trim_end());
+                let parsed_url = reqwest::Url::parse(&updated_url)
+                    .expect("Unable to parse URL. Please make sure the URL is formatted correctly");
+                fetch_url(client.clone(), parsed_url.to_string(), tx.clone())
+            }
+        } else {
+            let request = format!("{}/{}", config.url, directory.trim_end());
+            fetch_url(client.clone(), request, tx.clone());
+        }
     }
 
     drop(tx);
@@ -50,7 +59,7 @@ async fn run(config: Config) -> anyhow::Result<()> {
     // Default Status Codes: [200, 204, 301, 302, 307, 308, 401, 403, 405]
     while let Some(resp) = rx.recv().await {
         // TODO Add proper method handling
-        let angry_response = AngryResponse::from(resp, "GET").await; 
+        let angry_response = AngryResponse::from(resp, "GET").await;
         // Checks to see if exclude status codes was used. If not, either the default or user passed status codes will return.
         match config.exclude_status_codes.clone() {
             None => {
@@ -84,9 +93,20 @@ fn fetch_url(
         if let Err(e) = &resp {
             if e.is_timeout() {
                 if let Some(z) = e.url() {
-                    eprintln!("{} Request Timed Out: {}", BAD, z);
+                    eprintln!("{} Request Timed Out --> {}", BAD, z);
                     return;
                 }
+            }
+        }
+
+        if let Err(e) = &resp {
+            if e.is_connect() {
+                // TODO Add logging so users can see this error if the choose to.
+                return;
+                // if let Some(error_url) = e.url() {
+                //     // eprintln!("{} Unable to connect --> {}", BAD, error_url);
+                //     return;
+                // }
             }
         }
 

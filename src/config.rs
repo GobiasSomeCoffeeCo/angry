@@ -15,6 +15,7 @@ pub struct Config {
     pub timeout: usize,
     pub redirects: bool,
     pub user_agent: String,
+    pub fuzz: Option<String>,
 }
 
 impl Default for Config {
@@ -31,6 +32,7 @@ impl Default for Config {
             timeout: 7,
             redirects: false,
             user_agent: String::new(),
+            fuzz: None,
         }
     }
 }
@@ -91,7 +93,7 @@ impl Config {
         }
 
         writeln!(&mut writer, "{}", redirects)?;
-        writeln!(&mut writer, "{} second's", timeout)?;
+        writeln!(&mut writer, "{} second(s)", timeout)?;
 
         writeln!(&mut writer, "{}", self.footer())?;
 
