@@ -16,7 +16,7 @@ Usage: angry [OPTIONS] --url <https://www.<target>.com> [COMMAND]
 
 Commands:
   test
-          does testing things **Ignore**
+          does testing things
   help
           Print this message or the help of the given subcommand(s)
 
@@ -32,12 +32,12 @@ Options:
   -p, --proxy <PROXY>
           Proxy to use for requests (ex: http(s)://host:port, socks5(h)://host:port)
 
-  -t, --threads <NUMBER> **Work in Progress**
+  -t, --threads <NUMBER>
           Number of threads
 
           [default: 50]
 
-  -d, --debug... **Work in Progress**
+  -d, --debug...
           Turn debugging information on
 
   -h, --help
@@ -58,6 +58,9 @@ Client Settings:
   -H, --headers <HEADERS>
           Allow a client to specify HTTP headers
 
+  -f, --fuzz <https://FUZZ.<target>.com>
+          Enter fuzzing mode. Pass a value to FUZZ within the the URL: ("https://FUZZ.<target_url>.com" or "https://<target_url>/script.php?valid_name=FUZZ")
+
   -a, --user-agent <USER_AGENT>
           Allow a client to specify a User-Agent
 
@@ -71,7 +74,7 @@ Response filters:
           Status Codes to include (allow list) (default: 200 204 301 302 307 308 401 403 405)
 
   -e, --exclude-status-codes <STATUS_CODE>...
-          Status Codes to exclude aka inverse of --status-codes (returns all status codes except the ones passed)
+          Status Codes to exclude (returns all status codes except the ones passed)
 ```
 
 # TODO
@@ -79,3 +82,4 @@ Response filters:
 - [ ] Add max depth
 - [ ] Add extensions
 - [x] Add headers
+- [x] Add fuzzing

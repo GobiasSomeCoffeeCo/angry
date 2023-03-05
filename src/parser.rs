@@ -41,7 +41,7 @@ pub struct Cli {
     #[arg(short = 'H', long, num_args = 1, help_heading = "Client Settings")]
     pub headers: Option<String>,
 
-     /// Enters fuzzing mode. Pass a value to FUZZ within the the URL: ("https://FUZZ.<target_url>.com" or https://<target_url>/script.php?valid_name=FUZZ")
+     /// Enter fuzzing mode. Pass a value to FUZZ within the the URL: ("https://FUZZ.<target_url>.com" or https://<target_url>/script.php?valid_name=FUZZ")
      #[arg(short, long, num_args = 1,  help_heading = "Client Settings", value_name = "https://FUZZ.<target>.com")]
      pub fuzz: Option<String>,
 
