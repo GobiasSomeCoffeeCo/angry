@@ -1,6 +1,8 @@
 # Angry 😠
 An attempt at a Content Discovery Tool. :beer:
 
+**Also know as the tool that inspired** [AngryOxide](https://github.com/Ragnt/AngryOxide)... 😠
+
 ![](angry.gif)
 
 # About
